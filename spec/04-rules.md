@@ -234,6 +234,7 @@ An agent can bypass the boundary by disabling or manipulating it. This is a **cr
 | R4 — Heritage | MUST | Derived data labeling | High |
 | R5 — Traceability | MUST | Every boundary check | High |
 | R6 — Opacity | MUST | Boundary mechanism access | Critical |
+| R7 — Escalation | MAY | Override on BLOCK | Warning (weakest link) |
 
 ## 4.8 Implementation checklist
 
@@ -255,3 +256,6 @@ A DBP-compliant implementation MUST pass all of the following:
 - [ ] R6.2: Agent cannot modify boundary configuration
 - [ ] R6.3: Agent cannot bypass boundary to reach transport
 - [ ] R6.4: Agent cannot inspect other agents' clearances
+- [ ] R7.1: Escalation is only possible after BLOCK
+- [ ] R7.2: Escalation result is traced
+- [ ] R7.3: Human is always the final link in the chain
