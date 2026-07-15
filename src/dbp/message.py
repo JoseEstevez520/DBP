@@ -61,7 +61,11 @@ class DBPMessage:
         # Validation
         if self.label is None:
             raise InvalidMessageError("label is required")
-        if not self.origin:
+        if not isinstance(self.origin, str):
+            raise InvalidMessageError(
+                f"origin must be a string, got {type(self.origin).__name__}"
+            )
+        if not self.origin.strip():
             raise InvalidMessageError("origin is required")
         if self.payload is None:
             raise InvalidMessageError("payload is required")

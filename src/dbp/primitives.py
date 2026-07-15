@@ -76,6 +76,11 @@ class Label:
             if isinstance(compartments, frozenset)
             else frozenset(compartments)
         )
+        for c in cs:
+            if not isinstance(c, str):
+                raise TypeError(
+                    f"Compartment values must be strings, got {type(c).__name__}: {c!r}"
+                )
         object.__setattr__(self, "compartments", cs)
         object.__setattr__(self, "policy", policy)
 

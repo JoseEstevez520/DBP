@@ -106,6 +106,15 @@ class Boundary:
         BoundaryResult
             ``PASS`` if the data may cross; ``BLOCK`` otherwise.
         """
+        if not isinstance(clearance, Clearance):
+            raise TypeError(
+                f"clearance must be a Clearance instance, got {type(clearance).__name__}"
+            )
+        if not isinstance(label, Label):
+            raise TypeError(
+                f"label must be a Label instance, got {type(label).__name__}"
+            )
+
         p = policy or label.policy
 
         # Empty label = unrestricted = always PASS
@@ -186,6 +195,21 @@ class Boundary:
         self._log_escalation(
             agent.name, parent.name, label, reason, "grant"
         )
+        # GRANT also records a PASS trace so the audit trail reflects the
+        # effective override
+        self._log.append(
+            TraceRecord(
+                timestamp=datetime.now(timezone.utc).isoformat(),
+                data_id=None,
+                origin=agent.name,
+                destination=parent.name,
+                label=label,
+                clearance=parent.clearance,
+                policy=label.policy,
+                result=BoundaryResult.PASS,
+                blocked_by=frozenset(),
+            )
+        )
         return EscalationResult.GRANT
 
     def _log_escalation(
@@ -223,7 +247,19 @@ class Boundary:
             One or more :class:`Label` instances to merge.
         policy:
             Policy for the resulting label.  Defaults to ``Policy.ANY``.
+
+        Raises
+        ------
+        ValueError
+            If no labels are provided.
         """
+        if not labels:
+            raise ValueError("heritage() requires at least one Label argument")
+        for i, l in enumerate(labels):
+            if not isinstance(l, Label):
+                raise TypeError(
+                    f"Argument {i} must be a Label instance, got {type(l).__name__}"
+                )
         combined: FrozenSet[str] = frozenset().union(
             *(l.compartments for l in labels)
         )

@@ -128,10 +128,10 @@ class LocalTransport(Transport):
             value = value.strip()
             # Handle list values written as JSON-style arrays
             if value.startswith("[") and value.endswith("]"):
-                inner = value[1:-1]
+                inner = value[1:-1].strip()
                 fm[key] = [
                     v.strip().strip("\"'") for v in inner.split(",") if v.strip()
-                ]
+                ] if inner else []
             else:
                 fm[key] = value.strip("\"'")
         return fm
