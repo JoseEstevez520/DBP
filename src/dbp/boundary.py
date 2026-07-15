@@ -11,7 +11,6 @@ from datetime import datetime, timezone
 from typing import Any, FrozenSet, List, Optional, Sequence
 
 from .agent_card import AgentCard
-from .errors import LabelViolationError
 from .primitives import BoundaryResult, Clearance, EscalationResult, Label, Policy
 
 
@@ -204,12 +203,11 @@ class Boundary:
             origin=agent_id,
             destination=parent_id,
             label=label,
-            clearance=Clearance(frozenset()),  # not applicable
+            clearance=Clearance({"__escalation__"}),
             policy=label.policy,
-            result=BoundaryResult.BLOCK,  # escalation always from BLOCK
+            result=BoundaryResult.BLOCK,
             blocked_by=frozenset(),
         )
-        # Augment the frozen record by adding escalation fields to the log
         self._log.append(record)
 
     # -- heritage ------------------------------------------------------------
