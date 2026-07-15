@@ -87,9 +87,11 @@ class TestHeritageAndBoundaryCheck:
     """Heritage labels should still be subject to boundary checks."""
 
     def test_heritage_result_passes_boundary_check(self, boundary):
+        from dbp import Clearance
+
         label = boundary.heritage(Label({"a"}), Label({"b"}))
-        result = boundary.check(label, clearance=type("C", (), {"compartments": frozenset({"a"})})())
-        # Not a valid Clearance — just check the shape
+        result = boundary.check(label, clearance=Clearance({"a"}))
+        assert result is not None
 
     def test_heritage_with_clearance(self, boundary):
         from dbp import Clearance, BoundaryResult

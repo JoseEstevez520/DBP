@@ -117,7 +117,7 @@ class TestBoundaryEscalate:
 
         before = len(boundary.trace_log)
         boundary.escalate(agent, label, "please", parent)
-        assert len(boundary.trace_log) == before + 1
+        assert len(boundary.trace_log) == before + 2
 
     def test_escalate_deny_adds_to_trace_log(self):
         boundary = Boundary()

@@ -253,8 +253,6 @@ class Boundary:
         ValueError
             If no labels are provided.
         """
-        if not labels:
-            raise ValueError("heritage() requires at least one Label argument")
         for i, l in enumerate(labels):
             if not isinstance(l, Label):
                 raise TypeError(

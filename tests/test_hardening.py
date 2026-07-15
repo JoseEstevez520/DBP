@@ -185,10 +185,10 @@ class TestTransportExports:
 
 class TestHeritageValidation:
 
-    def test_heritage_zero_args_raises(self):
+    def test_heritage_zero_args_returns_empty_label(self):
         b = Boundary()
-        with pytest.raises(ValueError, match="requires at least one Label"):
-            b.heritage()
+        result = b.heritage()
+        assert result.compartments == frozenset()
 
     def test_heritage_rejects_non_label(self):
         b = Boundary()
