@@ -29,6 +29,14 @@ class Policy(Enum):
     ALL = "all"
 
 
+class EscalationResult(Enum):
+    """Outcome of an escalation request (R7)."""
+
+    GRANT = "grant"
+    DENY = "deny"
+    ESCALATE = "escalate"
+
+
 class BoundaryResult(Enum):
     """Outcome of a boundary check."""
 

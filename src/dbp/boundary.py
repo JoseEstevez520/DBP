@@ -10,7 +10,9 @@ from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from typing import Any, FrozenSet, List, Optional, Sequence
 
-from .primitives import BoundaryResult, Clearance, Label, Policy
+from .agent_card import AgentCard
+from .errors import LabelViolationError
+from .primitives import BoundaryResult, Clearance, EscalationResult, Label, Policy
 
 
 # ---------------------------------------------------------------------------
@@ -142,6 +144,73 @@ class Boundary:
         )
         self._log.append(record)
         return result
+
+    # -- escalation (R7) ----------------------------------------------------
+
+    def escalate(
+        self,
+        agent: AgentCard,
+        label: Label,
+        reason: str,
+        parent: Optional[AgentCard] = None,
+    ) -> EscalationResult:
+        """Request escalation for a BLOCKed data transfer.
+
+        Parameters
+        ----------
+        agent:
+            The :class:`AgentCard` of the agent requesting escalation.
+        label:
+            The :class:`Label` that was BLOCKed.
+        reason:
+            Human-readable justification from the agent.
+        parent:
+            The parent :class:`AgentCard` being asked.  If ``None``, the
+            result is ``HUMAN_PENDING`` (the human must decide).
+
+        Returns
+        -------
+        EscalationResult
+            ``GRANT``, ``DENY``, or ``ESCALATE`` (request forwarded further up).
+        """
+        if parent is None:
+            self._log_escalation(agent.name, None, label, reason, "human_pending")
+            return EscalationResult.ESCALATE
+
+        # The parent must have strictly broader clearance to be meaningful
+        if not label.compartments.issubset(parent.clearance.compartments):
+            self._log_escalation(
+                agent.name, parent.name, label, reason, "deny"
+            )
+            return EscalationResult.DENY
+
+        self._log_escalation(
+            agent.name, parent.name, label, reason, "grant"
+        )
+        return EscalationResult.GRANT
+
+    def _log_escalation(
+        self,
+        agent_id: str,
+        parent_id: Optional[str],
+        label: Label,
+        reason: str,
+        result: str,
+    ) -> None:
+        """Append an escalation trace record."""
+        record = TraceRecord(
+            timestamp=datetime.now(timezone.utc).isoformat(),
+            data_id=None,
+            origin=agent_id,
+            destination=parent_id,
+            label=label,
+            clearance=Clearance(frozenset()),  # not applicable
+            policy=label.policy,
+            result=BoundaryResult.BLOCK,  # escalation always from BLOCK
+            blocked_by=frozenset(),
+        )
+        # Augment the frozen record by adding escalation fields to the log
+        self._log.append(record)
 
     # -- heritage ------------------------------------------------------------
 

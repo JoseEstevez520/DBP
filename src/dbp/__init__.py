@@ -19,11 +19,12 @@ from .errors import (
     BoundaryCheckError,
     DBPError,
     EmptyClearanceError,
+    EscalationError,
     InvalidMessageError,
     LabelViolationError,
 )
 from .message import DBPMessage
-from .primitives import BoundaryResult, Clearance, Label, Policy
+from .primitives import BoundaryResult, Clearance, EscalationResult, Label, Policy
 from .registry import Registry
 
 # Heritage is exposed as an alias pointing to Boundary.heritage (the method).
@@ -37,6 +38,7 @@ __all__ = [
     "Clearance",
     "Policy",
     "BoundaryResult",
+    "EscalationResult",
     # Engine
     "Boundary",
     "TraceRecord",
@@ -50,6 +52,7 @@ __all__ = [
     # Errors
     "DBPError",
     "EmptyClearanceError",
+    "EscalationError",
     "LabelViolationError",
     "InvalidMessageError",
     "BoundaryCheckError",

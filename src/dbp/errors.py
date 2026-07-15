@@ -24,3 +24,7 @@ class InvalidMessageError(DBPError):
 
 class BoundaryCheckError(DBPError):
     """Raised when the boundary engine encounters an internal error during a check."""
+
+
+class EscalationError(DBPError):
+    """Raised when an escalation request fails or is invalid."""

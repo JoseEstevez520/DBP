@@ -33,6 +33,9 @@ class AgentCard:
         Optional authentication metadata (e.g. ``{"type": "bearer", ...}``).
     protocol:
         Protocol version string.
+    escalation_parent:
+        Optional name of the agent to escalate BLOCK results to (R7).
+        If ``None``, escalation goes directly to the human.
     """
 
     name: str
@@ -41,12 +44,13 @@ class AgentCard:
     endpoint: Optional[str] = None
     auth: Optional[Dict[str, Any]] = None
     protocol: str = "dbp/1.0"
+    escalation_parent: Optional[str] = None
 
     # -- serialisation -------------------------------------------------------
 
     def to_dict(self) -> Dict[str, Any]:
         """Serialise the card to a plain dictionary."""
-        return {
+        d: Dict[str, Any] = {
             "name": self.name,
             "clearance": sorted(self.clearance.compartments),
             "description": self.description,
@@ -54,6 +58,9 @@ class AgentCard:
             "auth": self.auth,
             "protocol": self.protocol,
         }
+        if self.escalation_parent:
+            d["escalation_parent"] = self.escalation_parent
+        return d
 
     @classmethod
     def from_dict(cls, data: Dict[str, Any]) -> AgentCard:
@@ -65,6 +72,7 @@ class AgentCard:
             endpoint=data.get("endpoint"),
             auth=data.get("auth"),
             protocol=data.get("protocol", "dbp/1.0"),
+            escalation_parent=data.get("escalation_parent"),
         )
 
     # -- JSON file I/O -------------------------------------------------------
