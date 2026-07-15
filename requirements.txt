@@ -1,0 +1,3 @@
+# DBP has zero runtime dependencies — the core protocol uses only Python stdlib.
+# Install the development/test environment with:
+#   pip install -e ".[test]"
