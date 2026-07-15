@@ -211,4 +211,27 @@ Apache 2.0
 
 ## Status
 
-Early development. The specification is being formalized and the reference implementation is under construction.
+Stable core with R1-R7 implemented. **244 tests**, 8 demo scenarios, 9 commits.
+
+### Implemented
+- R1-R7: Read-in, Write, Crossing, Heritage, Traceability, Opacity, Escalation
+- Primitives: Label, Clearance, Policy (ANY/ALL), BoundaryResult, EscalationResult
+- Transports: Local (markdown frontmatter), HTTP (headers)
+- Agent Card with clearance and escalation_parent
+- Registry for agent discovery
+
+### Test coverage
+```
+244 passed in 0.73s
+├── test_boundary.py          35 tests
+├── test_heritage.py          10 tests
+├── test_message.py           16 tests
+├── test_agent_card.py        15 tests
+├── test_rules.py             16 tests
+├── test_transport_local.py   26 tests
+├── test_transport_http.py    24 tests
+├── test_escalation.py        16 tests
+├── test_integration.py       20 tests
+├── test_stress_integration.py 13 tests
+└── test_hardening.py         49 tests
+```
