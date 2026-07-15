@@ -7,6 +7,7 @@ from scenarios.scenario_4_chain import run as s4
 from scenarios.scenario_5_policies import run as s5
 from scenarios.scenario_6_multiagent import run as s6
 from scenarios.scenario_7_derived_data import run as s7
+from scenarios.scenario_8_escalation import run as s8
 
 
 def main():
@@ -22,6 +23,7 @@ def main():
     s5()
     s6()
     s7()
+    s8()
 
     print(f"{header}")
     print("  All scenarios complete.")
