@@ -1,26 +1,26 @@
 # DBP — Data Boundary Protocol
 
-**Deterministic data boundaries for agent communication.**
+**Una exploración sobre fronteras deterministas de datos entre agentes.**
 
-DBP is a communication protocol for multi-agent systems that enforces **what data can flow** between agents. It replaces soft norms ("don't share this" in a prompt) with deterministic infrastructure that agents cannot evade.
+DBP es un protocolo de comunicación para sistemas multi-agente que explora cómo controlar **qué datos pueden fluir** entre agentes de forma determinista. En lugar de normas blandas ("no compartas esto" en un prompt), propone que la infraestructura decida.
 
-## The gap
+## Contexto
 
 ```
-A2A (Google)    →  WHO talks to whom     (auth, discovery, transport)
-MCP (Anthropic) →  WHAT agents can DO    (tools, resources)
-DBP             →  WHAT DATA can FLOW    (boundaries, compartments)
+A2A (Google)    →  identidad y transporte (quién habla con quién)
+MCP (Anthropic) →  herramientas y recursos (qué puede hacer un agente)
+DBP             →  fronteras de datos (qué información puede fluir)
 ```
 
-Today, data boundaries between agents are enforced with prompt instructions — soft norms that a probabilistic agent may ignore, forget, or be tricked into bypassing. What an agent receives, it can leak. There is no deterministic mechanism to prevent it.
+Hoy, los límites de datos entre agentes se gestionan con instrucciones en el prompt — normas que un agente probabilístico puede ignorar, olvidar, o ser engañado para saltarse. Esto no es necesariamente un problema en todos los casos, pero cuando la privacidad de datos importa, plantea preguntas abiertas.
 
-DBP solves this by moving the control **out of the agent and into the boundary**. The agent never decides what it can see — the infrastructure decides for it.
+DBP propone mover el control **fuera del agente y situarlo en la frontera**. El agente no decide qué puede ver — la infraestructura decide por él.
 
-## Core insight
+## Idea central
 
-> The control lives at the boundary, not inside the agent. What the agent never receives, it cannot leak.
+> El control vive en la frontera, no dentro del agente. Lo que el agente nunca recibe, no puede filtrarlo.
 
-A human told "don't share this" **knows** the secret and might leak it. An agent started without access to it **doesn't know it**. It's not that it "decides not to share" — it never received the data in the first place.
+A un humano le dices "no compartas esto" y **sabe** el secreto — puede filtrarlo. A un agente lo arrancas sin acceso al dato y **no lo sabe**. No es que "decida no compartirlo" — es que nunca lo recibió.
 
 ## How it works
 
@@ -85,17 +85,6 @@ boundary.check(data_label, coach, Policy.ANY)       # → PASS (fitness matches)
 boundary.check(data_label, developer, Policy.ANY)    # → PASS (schedule matches)
 boundary.check(data_label, developer, Policy.ALL)    # → BLOCK (missing fitness)
 ```
-
-## DBP replaces A2A, it does not complement it
-
-If DBP were a layer on top of A2A, data would already have crossed via A2A before the boundary check intercepts it. A buggy or malicious implementation could skip the layer and use A2A directly. For real guarantees, the boundary check must be **inside** the communication protocol, not above it.
-
-```
-A2A:  auth ──────────► transport (everything passes if auth OK)
-DBP:  auth → boundary → transport (only permitted data passes)
-```
-
-DBP takes the good parts of A2A (Agent Cards, auth, task lifecycle) and adds the missing piece: mandatory boundary checks before any data crosses.
 
 ## Compartment model
 
@@ -181,15 +170,20 @@ Extends the A2A Agent Card concept with clearance declaration:
 2. **Transitive trust** — When data crosses between owners, who refreshes the original label?
 3. **Over-classification drift** — The natural tendency is to label everything as restricted. Needs a pruning mechanism.
 
-## Project structure
+## Estructura del proyecto
 
 ```
 DBP/
-├── spec/           # Formal specification (RFC-style)
-├── src/dbp/        # Reference implementation (Python)
-├── tests/          # Exhaustive test suite
-├── demo/           # Working demo with 4 agents, 7 scenarios
-└── examples/       # Standalone usage examples
+├── spec/           # Especificación formal (estilo RFC)
+├── src/dbp/        # Implementación de referencia (Python)
+├── tests/          # Suite de tests (292 tests)
+├── demo/           # Demos y despliegue multi-agente
+│   ├── scenarios/  # 8 escenarios de funcionalidad básica
+│   ├── agents/     # Configuración de agentes (JSON)
+│   ├── agent_runtime.py   # Sistema de despliegue multi-agente
+│   ├── deploy_company.py  # 16 agentes con jerarquía organizativa
+│   └── run_company.py     # Simulación completa
+└── examples/       # Ejemplos de uso independientes
 ```
 
 ## Getting started
@@ -209,29 +203,33 @@ python demo/run_demo.py
 
 Apache 2.0
 
-## Status
+## Estado
 
-Stable core with R1-R7 implemented. **244 tests**, 8 demo scenarios, 9 commits.
+R1-R7 implementados. **292 tests**, 8 escenarios demo, 16 agentes desplegables.
 
-### Implemented
+### Implementado
 - R1-R7: Read-in, Write, Crossing, Heritage, Traceability, Opacity, Escalation
-- Primitives: Label, Clearance, Policy (ANY/ALL), BoundaryResult, EscalationResult
-- Transports: Local (markdown frontmatter), HTTP (headers)
-- Agent Card with clearance and escalation_parent
-- Registry for agent discovery
+- Primitivas: Label, Clearance, Policy (ANY/ALL), BoundaryResult, EscalationResult
+- Transportes: Local (frontmatter en markdown), HTTP (cabeceras)
+- Agent Card con clearance y escalation_parent
+- AgentRuntime: despliegue multi-agente con 16 agentes y jerarquía organizativa
+- Traza de auditoría inmutable
 
-### Test coverage
+### Tests
 ```
-244 passed in 0.73s
-├── test_boundary.py          35 tests
-├── test_heritage.py          10 tests
-├── test_message.py           16 tests
-├── test_agent_card.py        15 tests
-├── test_rules.py             16 tests
-├── test_transport_local.py   26 tests
-├── test_transport_http.py    24 tests
-├── test_escalation.py        16 tests
-├── test_integration.py       20 tests
-├── test_stress_integration.py 13 tests
-└── test_hardening.py         49 tests
+292 passed in 5.21s
+├── test_boundary.py              35 tests
+├── test_heritage.py              10 tests
+├── test_message.py               16 tests
+├── test_agent_card.py            15 tests
+├── test_rules.py                 16 tests
+├── test_transport_local.py       26 tests
+├── test_transport_http.py        24 tests
+├── test_escalation.py            16 tests
+├── test_integration.py           20 tests
+├── test_stress_integration.py    13 tests
+├── test_hardening.py             49 tests
+├── test_property_chaos.py        35 tests (8000+ iteraciones aleatorias)
+├── test_simulation.py             5 tests (día laboral completo)
+└── test_benchmarks.py             8 tests (rendimiento)
 ```
