@@ -1,26 +1,24 @@
 # DBP — Data Boundary Protocol
 
-**Una exploración sobre fronteras deterministas de datos entre agentes.**
+**Deterministic data boundaries for agent communication.**
 
-DBP es un protocolo de comunicación para sistemas multi-agente que explora cómo controlar **qué datos pueden fluir** entre agentes de forma determinista. En lugar de normas blandas ("no compartas esto" en un prompt), propone que la infraestructura decida.
+DBP is a communication protocol for multi-agent systems that enforces **what data can flow** between agents. Instead of soft norms ("don't share this" in a prompt), it moves the control into the infrastructure.
 
-## Contexto
+## Context
 
 ```
-A2A (Google)    →  identidad y transporte (quién habla con quién)
-MCP (Anthropic) →  herramientas y recursos (qué puede hacer un agente)
-DBP             →  fronteras de datos (qué información puede fluir)
+A2A (Google)    →  identity and transport (who talks to whom)
+MCP (Anthropic) →  tools and resources (what agents can do)
+DBP             →  data boundaries (what information may flow)
 ```
 
-Hoy, los límites de datos entre agentes se gestionan con instrucciones en el prompt — normas que un agente probabilístico puede ignorar, olvidar, o ser engañado para saltarse. Esto no es necesariamente un problema en todos los casos, pero cuando la privacidad de datos importa, plantea preguntas abiertas.
+Today, data boundaries between agents are enforced through prompt instructions — norms that a probabilistic agent may ignore, forget, or be tricked into bypassing. What an agent receives, it can potentially leak. DBP explores moving the control **out of the agent and into the boundary**.
 
-DBP propone mover el control **fuera del agente y situarlo en la frontera**. El agente no decide qué puede ver — la infraestructura decide por él.
+## Core idea
 
-## Idea central
+> The control lives at the boundary, not inside the agent. What the agent never receives, it cannot leak.
 
-> El control vive en la frontera, no dentro del agente. Lo que el agente nunca recibe, no puede filtrarlo.
-
-A un humano le dices "no compartas esto" y **sabe** el secreto — puede filtrarlo. A un agente lo arrancas sin acceso al dato y **no lo sabe**. No es que "decida no compartirlo" — es que nunca lo recibió.
+A human told "don't share this" **knows** the secret and may leak it. An agent started without access to it **doesn't know it**. It's not that it "decides not to share" — it never received the data in the first place.
 
 ## How it works
 
@@ -170,20 +168,20 @@ Extends the A2A Agent Card concept with clearance declaration:
 2. **Transitive trust** — When data crosses between owners, who refreshes the original label?
 3. **Over-classification drift** — The natural tendency is to label everything as restricted. Needs a pruning mechanism.
 
-## Estructura del proyecto
+## Project structure
 
 ```
 DBP/
-├── spec/           # Especificación formal (estilo RFC)
-├── src/dbp/        # Implementación de referencia (Python)
-├── tests/          # Suite de tests (292 tests)
-├── demo/           # Demos y despliegue multi-agente
-│   ├── scenarios/  # 8 escenarios de funcionalidad básica
-│   ├── agents/     # Configuración de agentes (JSON)
-│   ├── agent_runtime.py   # Sistema de despliegue multi-agente
-│   ├── deploy_company.py  # 16 agentes con jerarquía organizativa
-│   └── run_company.py     # Simulación completa
-└── examples/       # Ejemplos de uso independientes
+├── spec/           # Formal specification (RFC-style)
+├── src/dbp/        # Reference implementation (Python)
+├── tests/          # Test suite (292 tests)
+├── demo/           # Demos and multi-agent deployment
+│   ├── scenarios/  # 8 feature scenarios
+│   ├── agents/     # Agent configurations (JSON)
+│   ├── agent_runtime.py   # Multi-agent deployment system
+│   ├── deploy_company.py  # 16 agents with org hierarchy
+│   └── run_company.py     # Full company simulation
+└── examples/       # Standalone usage examples
 ```
 
 ## Getting started
@@ -203,17 +201,17 @@ python demo/run_demo.py
 
 Apache 2.0
 
-## Estado
+## Status
 
-R1-R7 implementados. **292 tests**, 8 escenarios demo, 16 agentes desplegables.
+R1-R7 implemented. **292 tests**, 8 demo scenarios, 16 deployable agents.
 
-### Implementado
+### Implemented
 - R1-R7: Read-in, Write, Crossing, Heritage, Traceability, Opacity, Escalation
-- Primitivas: Label, Clearance, Policy (ANY/ALL), BoundaryResult, EscalationResult
-- Transportes: Local (frontmatter en markdown), HTTP (cabeceras)
-- Agent Card con clearance y escalation_parent
-- AgentRuntime: despliegue multi-agente con 16 agentes y jerarquía organizativa
-- Traza de auditoría inmutable
+- Primitives: Label, Clearance, Policy (ANY/ALL), BoundaryResult, EscalationResult
+- Transports: Local (markdown frontmatter), HTTP (headers)
+- Agent Card with clearance and escalation_parent
+- AgentRuntime: multi-agent deployment with 16 agents and org hierarchy
+- Immutable audit trace
 
 ### Tests
 ```
@@ -229,7 +227,7 @@ R1-R7 implementados. **292 tests**, 8 escenarios demo, 16 agentes desplegables.
 ├── test_integration.py           20 tests
 ├── test_stress_integration.py    13 tests
 ├── test_hardening.py             49 tests
-├── test_property_chaos.py        35 tests (8000+ iteraciones aleatorias)
-├── test_simulation.py             5 tests (día laboral completo)
-└── test_benchmarks.py             8 tests (rendimiento)
+├── test_property_chaos.py        35 tests (8000+ random iterations)
+├── test_simulation.py             5 tests (full work-day)
+└── test_benchmarks.py             8 tests (performance)
 ```
