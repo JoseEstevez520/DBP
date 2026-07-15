@@ -1,4 +1,4 @@
-﻿from dbp import Boundary, Clearance, Label, Policy
+﻿from dbp import Boundary, BoundaryResult, Clearance, Label, Policy
 
 
 def run():
@@ -20,5 +20,6 @@ def run():
     print(f"  training_plan [fitness] + weekly_schedule [schedule]")
     print(f"  â†’ combined [{', '.join(sorted(combined.compartments))}]")
     print(f"  Coordinator sees combined:  {r_coord.value}")
-    print(f"  Developer  sees combined:  {r_dev.value}  (missing: fitness)")
+    dev_suffix = f"  (missing: fitness)" if r_dev == BoundaryResult.BLOCK else ""
+    print(f"  Developer  sees combined:  {r_dev.value}{dev_suffix}")
     print()

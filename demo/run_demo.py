@@ -1,4 +1,4 @@
-"""DBP Demo — runs all 7 scenarios."""
+"""DBP Demo — runs all 8 scenarios."""
 
 from scenarios.scenario_1_basic import run as s1
 from scenarios.scenario_2_heritage import run as s2
@@ -14,6 +14,7 @@ def main():
     header = "=" * 52
     print(f"\n{header}")
     print("  D B P   D E M O   —   D a t a   B o u n d a r y   P r o t o c o l")
+    print("  195 tests • 9 commits • v0.9.0")
     print(f"{header}\n")
 
     s1()

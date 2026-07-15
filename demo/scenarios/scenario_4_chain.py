@@ -10,6 +10,7 @@ def run():
 
     fitness_label = Label({"fitness"})
 
+    print("[SCENARIO 4] Chain \u2014 boundaries apply at every hop")
     r1 = boundary.check(fitness_label, coordinator_clr, Policy.ANY, origin="coach", destination="coordinator")
     print(f"  Coach â†’ Coordinator (label: [fitness]): {r1.value}")
 

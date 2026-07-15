@@ -1,0 +1,6 @@
+{
+  "name": "coordinator_scenario8",
+  "description": "Cross-domain coordinator for scenario 8",
+  "clearance": ["identity", "fitness", "schedule", "project", "hr", "finance"],
+  "protocol": "dbp/1.0"
+}
