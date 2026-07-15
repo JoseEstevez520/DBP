@@ -1,0 +1,6 @@
+{
+  "name": "assistant",
+  "description": "Personal assistant",
+  "clearance": ["identity", "schedule", "finance"],
+  "protocol": "dbp/1.0"
+}

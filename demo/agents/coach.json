@@ -1,0 +1,6 @@
+{
+  "name": "coach",
+  "description": "Personal fitness coach",
+  "clearance": ["identity", "fitness", "schedule"],
+  "protocol": "dbp/1.0"
+}

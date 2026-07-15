@@ -1,0 +1,6 @@
+{
+  "name": "coordinator",
+  "description": "Cross-domain coordinator",
+  "clearance": ["identity", "fitness", "schedule", "project"],
+  "protocol": "dbp/1.0"
+}
