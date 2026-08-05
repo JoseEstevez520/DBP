@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/dbp-banner.svg" alt="DBP — Data Boundary Protocol" width="100%" />
+  <img src="assets/readme-hero.png" alt="What an agent never receives, it cannot leak" width="100%" />
 </p>
 
 <p align="center">
