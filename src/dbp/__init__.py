@@ -14,7 +14,7 @@ checks between AI agents:
 """
 
 from .agent_card import AgentCard
-from .boundary import Boundary, TraceRecord
+from .boundary import Boundary, EscalationOutcome, TraceRecord
 from .errors import (
     BoundaryCheckError,
     DBPError,
@@ -42,6 +42,7 @@ __all__ = [
     # Engine
     "Boundary",
     "TraceRecord",
+    "EscalationOutcome",
     "Heritage",
     # Messages
     "DBPMessage",

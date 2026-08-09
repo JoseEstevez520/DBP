@@ -8,10 +8,11 @@ from __future__ import annotations
 
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
-from typing import Any, FrozenSet, List, Optional, Sequence
+from typing import Any, Callable, FrozenSet, List, Optional, Sequence, Tuple
 
 from .agent_card import AgentCard
 from .primitives import BoundaryResult, Clearance, EscalationResult, Label, Policy
+from .registry import Registry
 
 
 # ---------------------------------------------------------------------------
@@ -54,6 +55,38 @@ class TraceRecord:
     policy: Policy
     result: BoundaryResult
     blocked_by: FrozenSet[str] = field(default_factory=frozenset)
+
+
+# ---------------------------------------------------------------------------
+# Escalation outcome
+# ---------------------------------------------------------------------------
+
+@dataclass(frozen=True)
+class EscalationOutcome:
+    """Result of walking an escalation chain (R7).
+
+    Attributes
+    ----------
+    result:
+        The :class:`EscalationResult` the chain resolved to.
+    authority:
+        Name of the agent that resolved the request (``None`` when the chain
+        reached the human backstop without an agent granting).
+    chain:
+        The names visited, in order, from the first parent upward.
+    derived_label:
+        When *result* is ``GRANT_DERIVED``, the label of the derived artifact
+        (boundary-safe for the requester). ``None`` otherwise.
+    derived:
+        When *result* is ``GRANT_DERIVED``, the derived artifact the authority
+        chose to reveal. ``None`` otherwise.
+    """
+
+    result: EscalationResult
+    authority: Optional[str]
+    chain: Tuple[str, ...]
+    derived_label: Optional[Label] = None
+    derived: Any = None
 
 
 # ---------------------------------------------------------------------------
@@ -211,6 +244,139 @@ class Boundary:
             )
         )
         return EscalationResult.GRANT
+
+    # -- hierarchical escalation (R7) ---------------------------------------
+
+    def escalate_chain(
+        self,
+        agent: AgentCard,
+        label: Label,
+        reason: str,
+        registry: Registry,
+        *,
+        derive: Optional[Callable[[AgentCard, Label], Tuple[Any, Label]]] = None,
+        max_hops: int = 64,
+    ) -> EscalationOutcome:
+        """Walk the escalation hierarchy until an authority resolves the request.
+
+        The request rises through each agent's ``escalation_parent`` link
+        (resolved via *registry*) until an ancestor with sufficient clearance
+        answers, or the chain ends and the human becomes the final authority.
+
+        Two ways an authority may answer:
+
+        * **Derived** (preferred) -- when *derive* is supplied, the first
+          ancestor cleared for *label* produces a derived artifact via
+          ``derive(authority, label)``. The artifact's label must itself pass a
+          boundary check for the **original requester**; if it would still leak,
+          the answer is ``DENY``. The raw data never crosses -> ``GRANT_DERIVED``.
+        * **Raw override** (escape hatch) -- when *derive* is ``None``, a cleared
+          ancestor approves a raw override -> ``GRANT`` (as :meth:`escalate`).
+
+        Parameters
+        ----------
+        agent:
+            The requesting agent's card. Its ``escalation_parent`` starts the walk.
+        label:
+            The blocked data label.
+        reason:
+            Human-readable justification, recorded per hop.
+        registry:
+            The :class:`Registry` used to resolve ``escalation_parent`` names.
+        derive:
+            Optional callback ``(authority, label) -> (value, derived_label)`` that
+            lets the answering authority reveal a boundary-safe derivative instead
+            of the raw data.
+        max_hops:
+            Cycle guard; raises :class:`EscalationError` if exceeded.
+
+        Returns
+        -------
+        EscalationOutcome
+            The resolved result, the authority (or ``None`` for the human), and
+            the chain that was walked.
+        """
+        # Imported lazily to keep the error family in one place without a cycle.
+        from .errors import EscalationError
+
+        chain: List[str] = []
+        current = agent
+        hops = 0
+
+        while True:
+            parent_name = current.escalation_parent
+            if parent_name is None:
+                # Top of the agent chain: the human is the final authority.
+                self._log_escalation(current.name, None, label, reason, "human_pending")
+                return EscalationOutcome(
+                    EscalationResult.ESCALATE, None, tuple(chain)
+                )
+
+            parent = registry.get(parent_name)
+            if parent is None:
+                raise EscalationError(
+                    f"escalation_parent '{parent_name}' of '{current.name}' "
+                    "is not registered"
+                )
+
+            hops += 1
+            if hops > max_hops:
+                raise EscalationError(
+                    f"escalation chain exceeded {max_hops} hops (possible cycle)"
+                )
+            chain.append(parent.name)
+
+            authorised = label.compartments.issubset(parent.clearance.compartments)
+            if not authorised:
+                # This ancestor lacks the clearance to decide; forward upward.
+                self._log_escalation(agent.name, parent.name, label, reason, "escalate")
+                current = parent
+                continue
+
+            if derive is not None:
+                derived_value, derived_label = derive(parent, label)
+                # The derivative must be safe for the ORIGINAL requester, else
+                # answering would just leak the data one level down.
+                safe = self.check(
+                    derived_label,
+                    agent.clearance,
+                    origin=parent.name,
+                    destination=agent.name,
+                )
+                if safe is BoundaryResult.BLOCK:
+                    self._log_escalation(agent.name, parent.name, label, reason, "deny")
+                    return EscalationOutcome(
+                        EscalationResult.DENY, parent.name, tuple(chain)
+                    )
+                self._log_escalation(
+                    agent.name, parent.name, label, reason, "grant_derived"
+                )
+                return EscalationOutcome(
+                    EscalationResult.GRANT_DERIVED,
+                    parent.name,
+                    tuple(chain),
+                    derived_label,
+                    derived_value,
+                )
+
+            # Raw override escape hatch (parity with single-hop escalate()).
+            self._log_escalation(agent.name, parent.name, label, reason, "grant")
+            self._log.append(
+                TraceRecord(
+                    timestamp=datetime.now(timezone.utc).isoformat(),
+                    data_id=None,
+                    origin=agent.name,
+                    destination=parent.name,
+                    label=label,
+                    clearance=parent.clearance,
+                    policy=label.policy,
+                    result=BoundaryResult.PASS,
+                    blocked_by=frozenset(),
+                )
+            )
+            return EscalationOutcome(
+                EscalationResult.GRANT, parent.name, tuple(chain)
+            )
 
     def _log_escalation(
         self,

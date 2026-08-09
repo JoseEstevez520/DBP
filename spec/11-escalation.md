@@ -15,9 +15,10 @@ R7 adds a third outcome — **ESCALATE** — that allows an agent to request per
 ### 11.2.1 EscalationResult
 
 ```
-GRANT     → the override is approved, data may cross
-DENY      → the override is rejected, BLOCK is confirmed
-ESCALATE  → the decision is forwarded to the next level
+GRANT          → a raw override is approved, the original data may cross (escape hatch)
+GRANT_DERIVED  → the authority answers with a boundary-safe derivative; raw data never crosses
+DENY           → the override is rejected, BLOCK is confirmed
+ESCALATE       → the decision is forwarded to the next level (ultimately the human)
 ```
 
 ### 11.2.2 EscalationRequest
@@ -115,3 +116,65 @@ Escalation is the **weakest point** of DBP:
 3. **Human fatigue** — If too many decisions reach the human, they may approve without reading. Mitigation: aggregate similar requests, require explicit reason from the agent.
 
 4. **Override proliferation** — If GRANT becomes routine, the clearance system is meaningless. Mitigation: overrides expire after a configurable TTL, and are logged permanently for audit.
+
+## 11.7 Hierarchical escalation and derived answers
+
+§11.3 defines a single hop: an agent asks one declared parent. Real component
+trees are deeper — a button's authority is its form, the form's is the page, the
+page's is the root orchestrator. R7 therefore also defines an **automatic walk**
+up the `escalation_parent` chain, plus a safer way for an authority to answer.
+
+### 11.7.1 Chain walk
+
+`escalate_chain(agent, label, reason, registry)` resolves `escalation_parent`
+names through the registry and rises level by level:
+
+```
+requester → parent → … → root authority → human
+```
+
+At each level, if that authority's clearance covers the label it resolves the
+request; otherwise the request is forwarded to *its* parent. If the chain ends
+with no capable authority (an agent with no `escalation_parent`), the request
+reaches the **human**, who remains the final authority (§11.4). A cycle or an
+unregistered parent is an error, not an infinite climb.
+
+The walk returns an **EscalationOutcome**: the result, the `authority` that
+resolved it (or `null` for the human), and the `chain` that was visited.
+
+### 11.7.2 Derived answers (preferred over raw override)
+
+A raw `GRANT` moves the original sensitive data into an agent that was not
+cleared for it — the "weakest point" of §11.6. R7 adds a safer resolution:
+the answering authority may return a **derived artifact** instead.
+
+```
+authority holds raw data (label L)
+        │  derive(authority, L) → (value, L_derived)
+        ▼
+check(L_derived, requester.clearance)      ← the derivative must itself pass
+        ├── PASS  → GRANT_DERIVED, return value   (raw data never crosses)
+        └── BLOCK → DENY                           (a leak is refused, not served)
+```
+
+The derivative SHOULD carry **heritage** (§8) so its provenance is auditable.
+Example: a discount agent (no `payment`/`pii` clearance) asks "can the user pay?".
+The authority holding the payment data does not hand over the card; it returns
+`{ can_pay: true }` under a derived label the requester is cleared for. The
+requester gets exactly what it needs and nothing it must not see.
+
+**Raw `GRANT` remains the escape hatch** for the cases §11.1 describes (a human
+or supervisor explicitly authorising a one-time raw transfer, with TTL and audit).
+Derived answers are the default; raw override is the exception.
+
+### 11.7.3 Compliance test
+
+```
+1. Register button → form → main; only main is cleared for {"pii"}.
+2. Attempt to deliver {"pii"} data to button → BLOCK.
+3. escalate_chain(button, {"pii"}, reason, registry, derive=…)
+4. Assert: the walk visits form then main; main resolves.
+5. Assert: result is GRANT_DERIVED and the returned artifact's label passes for button.
+6. Assert: a derive() that returns a still-{"pii"} label yields DENY, not delivery.
+7. Assert: every hop produced a trace record.
+```

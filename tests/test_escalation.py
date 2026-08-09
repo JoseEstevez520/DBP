@@ -211,3 +211,123 @@ class TestEscalationScenario:
         # Agent -> Grandparent: grandparent has 'c'
         r2 = boundary.escalate(agent, label, "need c", grandparent)
         assert r2 == EscalationResult.GRANT
+
+
+class TestEscalationChain:
+    """R7 hierarchical escalation: escalate_chain walks the parent hierarchy."""
+
+    def _registry(self):
+        from dbp import Registry
+
+        reg = Registry()
+        # button -> form -> main. Only main is cleared for "pii".
+        button = AgentCard(
+            name="button",
+            clearance=Clearance({"ui"}),
+            escalation_parent="form",
+        )
+        form = AgentCard(
+            name="form",
+            clearance=Clearance({"ui", "form-state"}),
+            escalation_parent="main",
+        )
+        main = AgentCard(
+            name="main",
+            clearance=Clearance({"ui", "form-state", "pii"}),
+            # no escalation_parent -> human is the final authority
+        )
+        reg.register(button)
+        reg.register(form)
+        reg.register(main)
+        return reg, button, form, main
+
+    def test_chain_walks_up_to_first_capable_authority(self):
+        boundary = Boundary()
+        reg, button, form, main = self._registry()
+        label = Label({"pii"})
+
+        outcome = boundary.escalate_chain(button, label, "need to know if user can pay", reg)
+
+        assert outcome.result == EscalationResult.GRANT
+        assert outcome.authority == "main"          # form could not decide; main could
+        assert outcome.chain == ("form", "main")    # walked form first, then main
+
+    def test_derived_answer_never_reveals_raw_data(self):
+        boundary = Boundary()
+        reg, button, form, main = self._registry()
+        label = Label({"pii"})
+
+        # The authority answers with a boundary-safe derivative labelled "derived",
+        # which the requester (button, clearance {"ui"}) is NOT blocked from because
+        # an empty/derived label passes. Here we hand back a public boolean.
+        def derive(authority, blocked_label):
+            return ({"can_pay": True}, Label(set()))  # empty label = unrestricted
+
+        outcome = boundary.escalate_chain(
+            button, label, "can the user pay?", reg, derive=derive
+        )
+
+        assert outcome.result == EscalationResult.GRANT_DERIVED
+        assert outcome.authority == "main"
+        assert outcome.derived == {"can_pay": True}
+        # The raw pii label never crosses; only the derived artifact is returned.
+        assert outcome.derived_label is not None and outcome.derived_label.is_empty()
+
+    def test_derived_that_would_still_leak_is_denied(self):
+        boundary = Boundary()
+        reg, button, form, main = self._registry()
+        label = Label({"pii"})
+
+        # A mis-derivation: the authority tries to hand back data still labelled pii,
+        # which the requester is not cleared for. This must be refused, not leaked.
+        def bad_derive(authority, blocked_label):
+            return ({"card": "1234"}, Label({"pii"}))
+
+        outcome = boundary.escalate_chain(
+            button, label, "give me everything", reg, derive=bad_derive
+        )
+
+        assert outcome.result == EscalationResult.DENY
+        assert outcome.authority == "main"
+
+    def test_chain_reaching_top_without_authority_goes_to_human(self):
+        boundary = Boundary()
+        from dbp import Registry
+
+        reg = Registry()
+        # Nobody in the chain is cleared for "secret"; top has no parent -> human.
+        a = AgentCard(name="a", clearance=Clearance({"ui"}), escalation_parent="b")
+        b = AgentCard(name="b", clearance=Clearance({"ui"}))  # top, no parent
+        reg.register(a)
+        reg.register(b)
+
+        outcome = boundary.escalate_chain(a, Label({"secret"}), "need secret", reg)
+
+        assert outcome.result == EscalationResult.ESCALATE  # human backstop
+        assert outcome.authority is None
+
+    def test_missing_parent_in_registry_raises(self):
+        boundary = Boundary()
+        from dbp import EscalationError, Registry
+
+        reg = Registry()
+        orphan = AgentCard(
+            name="orphan", clearance=Clearance({"ui"}), escalation_parent="ghost"
+        )
+        reg.register(orphan)
+
+        with pytest.raises(EscalationError):
+            boundary.escalate_chain(orphan, Label({"pii"}), "help", reg)
+
+    def test_cycle_is_guarded(self):
+        boundary = Boundary()
+        from dbp import EscalationError, Registry
+
+        reg = Registry()
+        a = AgentCard(name="a", clearance=Clearance({"ui"}), escalation_parent="b")
+        b = AgentCard(name="b", clearance=Clearance({"ui"}), escalation_parent="a")
+        reg.register(a)
+        reg.register(b)
+
+        with pytest.raises(EscalationError):
+            boundary.escalate_chain(a, Label({"pii"}), "loop", reg, max_hops=8)

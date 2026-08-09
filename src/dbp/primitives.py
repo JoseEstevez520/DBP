@@ -30,9 +30,19 @@ class Policy(Enum):
 
 
 class EscalationResult(Enum):
-    """Outcome of an escalation request (R7)."""
+    """Outcome of an escalation request (R7).
+
+    * ``GRANT`` -- an authority with broader clearance approves a raw override:
+      the original data crosses to the requester (the escape hatch).
+    * ``GRANT_DERIVED`` -- an authority answers with a *derived* artifact that is
+      itself boundary-safe for the requester; the raw data never crosses.
+    * ``DENY`` -- the override is rejected; BLOCK stands.
+    * ``ESCALATE`` -- unresolved at this level; forwarded further up the chain
+      (and ultimately to the human, who is always the last link).
+    """
 
     GRANT = "grant"
+    GRANT_DERIVED = "grant_derived"
     DENY = "deny"
     ESCALATE = "escalate"
 
