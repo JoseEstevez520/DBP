@@ -13,6 +13,13 @@
 
 **DBP (Data Boundary Protocol)** is a protocol and reference implementation for deciding exactly what information may flow between agents. It moves control from prompt instructions into enforceable infrastructure: data that never crosses a boundary cannot be leaked by the receiving agent.
 
+## Related projects
+
+[SkillNet](https://github.com/ANFAIA/SkillNet) explores the same multi-agent problem from the
+learning-system side: how generated content, specialized agents and organizational knowledge can
+coexist without losing control of data. DBP is a related boundary protocol, not a claimed runtime
+dependency of SkillNet.
+
 > **The control lives at the boundary, not inside the agent.**
 
 ## Why DBP?
